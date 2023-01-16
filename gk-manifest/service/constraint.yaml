@@ -1,0 +1,12 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sServiceRequiredType
+metadata:
+  name: service-required-clusterip
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Service"]
+    namespaces: ["dog-app"]
+  parameters:
+    serviceType: "ClusterIP"

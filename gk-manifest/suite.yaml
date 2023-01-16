@@ -1,0 +1,23 @@
+kind: Suite
+apiVersion: test.gatekeeper.sh/v1alpha1
+tests:
+- name: allowed-labels
+  template: ./deployment-pod-template-required-labels/template.yaml
+  constraint: ./deployment-pod-template-required-labels/constraint.yaml
+  cases:
+  - name: allowed-test
+    object: ../app-manifest/deployment.yaml
+    assertions:
+    - violations: no
+- name: allowed-cluster-ip
+  template: ./service-type/template.yaml
+  constraint: ./service-type/constraint.yaml
+  cases:
+  - name: cluster-ip-allowed
+    object: ../app-manifest/service_clusterip.yaml 
+    assertions:
+    - violations: no
+  - name: nodeport-not-allowed
+    object: ../app-manifest/service_nodeport.yaml 
+    assertions:
+    - violations: yes

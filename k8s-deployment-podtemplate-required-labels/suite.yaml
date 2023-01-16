@@ -1,0 +1,19 @@
+kind: Suite
+apiVersion: test.gatekeeper.sh/v1alpha1
+tests:
+- name: app-version-label
+  template: template.yaml
+  constraint: constraint.yaml
+  cases:
+  - name: app-version-label-exist-for-v1
+    object: ../app-manifest/deployment-v1.yaml
+    assertions:
+    - violations: no
+  - name: app-version-label-exist-for-v2
+    object: ../app-manifest/deployment-v2.yaml
+    assertions:
+    - violations: no
+  - name: version-label-missing
+    object: ../app-manifest/deployment-without-label.yaml
+    assertions:
+    - violations: yes

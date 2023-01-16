@@ -1,0 +1,94 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  creationTimestamp: null
+  name: k8sdeploymentpodtemplaterequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDeploymentPodtemplateRequiredLabels
+      validation:
+        openAPIV3Schema:
+          properties:
+            labels:
+              description: Array of required label keys.
+              items:
+                type: string
+              type: array
+  targets:
+  - libs:
+    - |-
+      package lib.core
+
+      default is_gatekeeper = false
+
+      is_gatekeeper {
+        has_field(input, "review")
+        has_field(input.review, "object")
+      }
+
+      resource = input.review.object {
+        is_gatekeeper
+      }
+
+      resource = input {
+        not is_gatekeeper
+      }
+
+      format(msg) = {"msg": msg}
+
+      format_with_id(msg, id) = msg_fmt {
+        msg_fmt := {
+          "msg": sprintf("%s: %s", [id, msg]),
+          "details": {"policyID": id},
+        }
+      }
+
+      apiVersion = resource.apiVersion
+
+      name = resource.metadata.name
+
+      kind = resource.kind
+
+      labels = resource.metadata.labels
+
+      annotations = resource.metadata.annotations
+
+      gv := split(apiVersion, "/")
+
+      group = gv[0] {
+        contains(apiVersion, "/")
+      }
+
+      group = "core" {
+        not contains(apiVersion, "/")
+      }
+
+      version := gv[count(gv) - 1]
+
+      has_field(obj, field) {
+        not object.get(obj, field, "N_DEFINED") == "N_DEFINED"
+      }
+
+      missing_field(obj, field) {
+        obj[field] == ""
+      }
+
+      missing_field(obj, field) {
+        not has_field(obj, field)
+      }
+    rego: |-
+      package k8sdeploymentpodtemplaterequiredlabels
+
+      import data.lib.core
+
+      violation[{"msg": msg}] {
+        provided := {label | core.resource.spec.template.metadata.labels[label]}
+        required := {label | label := input.parameters.labels[_]}
+        missing := required - provided
+        count(missing) > 0
+        msg := sprintf("you must provide labels: %v", [missing])
+      }
+    target: admission.k8s.gatekeeper.sh
+status: {}
